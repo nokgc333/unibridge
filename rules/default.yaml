@@ -1,0 +1,17 @@
+# rules/default.yaml
+schema_version: 1
+project_type: generic
+naming_rules:
+  - pattern: '^/[a-zA-Z0-9_]+/xform_[a-z0-9_]+$'
+    applies_to_prim_type: Xform
+    description: "XformプリミティブはXform_で始まるsnake_case階層パス"
+    rename_hint: "xform_{seq:03d}"
+  - pattern: '^/[a-zA-Z0-9_]+/geo_[a-z0-9_]+$'
+    applies_to_prim_type: Mesh
+    description: "MeshプリミティブはGeo_で始まるsnake_case階層パス"
+    rename_hint: "geo_{seq:03d}"
+  - pattern: '.*'
+    applies_to_prim_type: all
+    description: "その他Prim種別は既定では規則を課さない（明示的に緩いルールとして定義）"
+exclude_patterns:
+  - '^/.*_WIP.*$'   # 作業用Primの命名規則除外パターン（要件定義書§3.3）
