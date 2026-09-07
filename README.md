@@ -34,7 +34,7 @@ unibridge/
 
 ## 技術スタック
 
-- Python 3.11+ / usd-core 24.11（pip配布、DCC非依存）
+- Python 3.11+ / usd-core 26.8（pip配布、DCC非依存）
 - FastAPI + uvicorn（簡易Web GUI）/ PyYAML（`yaml.safe_load`のみ）
 - pytest / pytest-cov / mypy(strict, adapters/のみhou/bpyスタブ不在のため除外) / black / isort / flake8 / pip-audit
 
@@ -87,22 +87,24 @@ python tests/benchmark.py   # NFR-001性能測定(手動実行、CI組み込み�
 
 ### ドキュメントと実装の乖離（実装時に判明、修正済み）
 
-仕様書§5.2は「metersPerUnit未設定時のUSD既定値は1.0」と記載しているが、usd-core 24.11で実測した結果、**実際の既定値は0.01（centimeters）**であることを確認した。`core/scale_check.py`のdocstring・テストは実測値に合わせて修正済み（コード自体は`UsdGeom.GetStageMetersPerUnit()`の戻り値をそのまま使うため、この乖離はドキュメント側のみの問題で実装に影響はない）。
+仕様書§5.2は「metersPerUnit未設定時のUSD既定値は1.0」と記載しているが、usd-core 24.11で実測した結果、**実際の既定値は0.01（centimeters）**であることを確認した。`core/scale_check.py`のdocstring・テストは実測値に合わせて修正済み（コード自体は`UsdGeom.GetStageMetersPerUnit()`の戻り値をそのまま使うため、この乖離はドキュメント側のみの問題で実装に影響はない）。usd-core 26.8への更新後も同様に実測し、既定値が0.01のまま変わっていないことを再確認した。
 
-### 既知の脆弱性（pip-audit、意図的に許容）
+### 既知の脆弱性（pip-audit、解消済み）
 
-`pip-audit`実行時、以下2件が検出される。いずれも仕様書§3.1で指定されたバージョン制約（`usd-core<25`, `pytest<9`）に起因し、本プロジェクトの性質（個人ポートフォリオ、ローカル実行専用、外部入力を信頼境界外として扱わない設計、§9.8参照）を踏まえ受容している。将来的にバージョン制約を緩めて解消する拡張候補として記録する。
+以前は仕様書§3.1で指定されたバージョン制約（`usd-core<25`, `pytest<9`）により、`pip-audit`で以下2件の既知脆弱性が検出されていた。
 
-| パッケージ | 現行バージョン | 脆弱性ID | 修正版 |
+| パッケージ | 旧バージョン | 脆弱性ID | 修正版 |
 |---|---|---|---|
 | usd-core | 24.11 | GHSA-grjp-54v3-c442 | 25.11 |
 | pytest | 8.4.2 | PYSEC-2026-1845 | 9.0.3 |
+
+`pyproject.toml`のバージョン上限を撤廃し（`usd-core>=25.11`, `pytest>=9.0.3`）、実際に`usd-core 26.8`・`pytest 9.1.1`へ更新することで解消した（先行プロジェクトpipeinitでの対応実績に倣う）。更新後も`pytest --cov=core --cov-report=term-missing --cov-fail-under=80`（53件pass、カバレッジ94.66%）、`black --check . && isort --check . && flake8 . && mypy core/ cli.py webui/ --exclude adapters/`は全てパスし、`usd-core 26.8`での`metersPerUnit`未設定時の既定値も0.01のまま変化していないことを実測で再確認した。`pip-audit`実行結果は`No known vulnerabilities found`。
 
 ## 実機検証結果（2026-09-07実施）
 
 ### Blender実機検証（Blender 4.0.0、`blender --background`、実機検証済み）
 
-Houdini MCPが本開発環境では接続不可（`ConnectionRefused`）、かつローカルにHoudini本体がインストールされていないため、Houdini側アダプタ（`adapters/houdini_adapter.py`）は実機未検証のまま残っている。一方Blenderはローカルに複数バージョンがインストールされていたため（`/Applications/Blender.app`、4.0.0）、`adapters/blender_adapter.py` と `cli_blender_entry.py` を実機で検証した。
+Houdini MCPが本開発環境では接続不可（`ConnectionRefused`）だったため、この時点ではHoudini側アダプタ（`adapters/houdini_adapter.py`）は実機未検証のまま残っていた（後日、Houdini本体がSteam経由でローカルにインストール済みであることが判明し、hython直接実行による実機検証を別途実施済み。詳細は後述のHoudini実機検証セクションを参照）。一方Blenderはローカルに複数バージョンがインストールされていたため（`/Applications/Blender.app`、4.0.0）、`adapters/blender_adapter.py` と `cli_blender_entry.py` を実機で検証した。
 
 検証コマンド:
 
@@ -137,9 +139,27 @@ $ python cli.py scale-check --source sample_scenes/consistent_scene.usda --targe
 
 **UniBridgeが検出しようとしている「DCC往復での座標系不整合」を、実際のBlender I/Oの挙動から実データで再現・検出できることを確認した。** これはADR-0003（BlenderのUSD I/Oの実際の変換挙動を検証対象に含める設計判断）の妥当性を裏付ける実証結果である。
 
-### Houdini実機検証（未実施）
+### Houdini実機検証（2026-09-08実施）
 
-`adapters/houdini_adapter.py` / `cli_houdini_entry.py` は、本開発環境にHoudiniがインストールされておらず、かつHoudini MCP（`houdini`）が`ConnectionRefused`で接続できなかったため、**実機検証を行えていない**。コードはScene DoctorのPorts & Adaptersパターン（`hou_adapter.py`）に倣って実装済みだが、`hou.LopNode.stage()`の戻り値の型・エラー時の挙動等は未確認である。各関数のdocstringに「実機未検証、要検証」と明記している。実機検証の手順は [docs/仕様書.md §11.3 RB-002](docs/仕様書.md) を参照。
+Houdini MCP（`houdini`）は本セッションでも引き続き`ConnectionRefused`で接続できなかったが、Houdini本体はSteam経由でローカルにインストール済み（Houdini Indie 22.0.429）であることが判明したため、MCPを使わずhython（`.../Houdini Indie/Frameworks/Houdini.framework/Versions/22.0/Resources/bin/hython`）を直接Bashで起動して実機検証を行った（Scene Doctorの`hou_adapter.py`実機検証と同一手法）。
+
+既存のテストシーン`tornado_00.hiplc`/`spiderweb_v1.hiplc`は読み取り専用で開き、`/stage`にLOPsネットワークが存在しない（通常のSOPシーン）ことをまず確認した。そのため、これらのファイルは一切上書きせず、hython上でメモリ上に新規のLOPsネットワーク（`sphere`/`cube` LOPノード + `merge`ノードで構成する`/stage`）を組み立て、それを対象に`adapters/houdini_adapter.py`の`export_stage_from_lop` / `list_lop_children`を実際に実行して検証した。
+
+検証内容:
+
+- `list_lop_children("/stage")` が構築した3ノードのパスを正しく返すこと
+- `export_stage_from_lop()` でusda/usdc双方の形式にエクスポートできること
+- エクスポートしたUSDファイルに実際のプリム（`sphere1`/`grid1`）が含まれること
+- 存在しないノードパス・LOPノードでないノード（`/obj`）を指定した場合に`LopNodeNotFoundError`が正しく送出されること
+- エクスポートしたUSDファイルに対し`python cli.py scale-check`（venv側）を実際に実行し、UniBridge本体のCLIから問題なく読み込めること
+
+実機検証で1件の重大なバグを発見・修正した。
+
+| 発見箇所 | 症状 | 原因 | 対応 |
+|---|---|---|---|
+| `export_stage_from_lop()`の`stage.GetRootLayer().Export()` | エクスポートしたUSDファイルにジオメトリ等のプリムが一切含まれず、`subLayers`に匿名レイヤーへの参照のみが書き出される（Houdiniセッション終了後は解決不能なファイルになる） | Houdini LOPノードの`stage()`が返す合成済みStageは、各ノードの出力を保持する複数の匿名sublayer（`anon:0x...:LOP`）から構成されている。`stage.GetRootLayer()`はそのうちルートレイヤー（sublayer参照のみを持つ空に近いレイヤー）しか指さないため、それだけを`Export()`すると実際のプリム定義（他のsublayerにある）が失われる | `stage.GetRootLayer().Export()`を`stage.Export()`（`Usd.Stage.Export`、合成結果をフラット化してから書き出す）に修正。修正後、実際にsphere/cubeプリムを含む正しいUSDファイルが出力されることを確認した |
+
+修正後、`export_stage_from_lop`/`list_lop_children`のエラーケース・正常系ともに全て期待通りに動作することを確認した。コードはScene DoctorのPorts & Adaptersパターン（`hou_adapter.py`）に倣って実装済みであり、`adapters/houdini_adapter.py`・`cli_houdini_entry.py`のdocstringは実機検証済みである旨に更新した。
 
 ## セキュリティに関する注意
 

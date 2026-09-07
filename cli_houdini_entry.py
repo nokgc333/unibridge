@@ -6,10 +6,13 @@
 実hou呼び出しは adapters.houdini_adapter にのみ存在させ、本モジュールの他のロジックは
 hou非依存に保つ（Ports & Adapters, ADR-0002）。
 
---- 実機未検証、要検証 ---
+--- 実機検証済み（2026-09-08） ---
 このモジュール自体はHoudini本体がない環境ではimport時にエラーになる
-（adapters.houdini_adapterがhouをimportするため）。Houdini MCPが本セッションでは
-接続不可のため、実機（hython）での動作確認は行えていない。仕様書§11.3 RB-002を参照。
+（adapters.houdini_adapterがhouをimportするため）。Steam版Houdini Indie 22.0.429の
+hythonで、`adapters.houdini_adapter`のexport_stage_from_lop/list_lop_children相当の
+処理を実機のLOPsネットワークに対して実行し検証した（詳細はREADME「実機検証結果」参照）。
+本モジュール自体（argparse部分）は簡易な引数検証のみのため、hou依存部分の検証をもって
+実質的な検証とした。
 """
 
 from __future__ import annotations
@@ -36,7 +39,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """hython上で実行する本番エントリポイント（実機未検証）。"""
+    """hython上で実行する本番エントリポイント（実機検証済み、2026-09-08）。"""
     args = _build_arg_parser().parse_args(argv)
 
     if not args.output.lower().endswith((".usda", ".usdc", ".usd")):

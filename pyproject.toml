@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 dependencies = [
-    "usd-core>=24.8,<25",
+    "usd-core>=25.11",
     "PyYAML>=6.0.2,<7",
     "fastapi>=0.115,<1",
     "uvicorn[standard]>=0.30,<1",
@@ -15,8 +15,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.3,<9",
-    "pytest-cov>=5.0,<6",
+    "pytest>=9.0.3",
+    "pytest-cov>=5.0",
     "black>=24.0",
     "flake8>=7.1",
     "isort>=5.13",
