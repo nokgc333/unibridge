@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UniBridge</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.4rem; }
+    .tabs { display: flex; gap: .5rem; margin-bottom: 1rem; }
+    .tabs button { padding: .5rem 1rem; cursor: pointer; }
+    .tabs button[aria-selected="true"] { font-weight: bold; border-bottom: 2px solid #333; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .dropzone {
+      border: 2px dashed #999; border-radius: 8px; padding: 2rem; text-align: center;
+      margin-bottom: 1rem; cursor: pointer;
+    }
+    .dropzone.drag { border-color: #333; background: #f5f5f5; }
+    table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+    th, td { border: 1px solid #ccc; padding: 4px 8px; font-size: .85rem; text-align: left; }
+    .error { color: #b00020; margin-top: .5rem; }
+    .success { color: #0a7d2c; margin-top: .5rem; }
+    .spinner { display: none; }
+    .spinner.active { display: inline-block; }
+  </style>
+</head>
+<body>
+  <h1>UniBridge: USD検証・差分レポート</h1>
+
+  <div class="tabs" role="tablist">
+    <button id="tab-single" role="tab" aria-selected="true">単一ファイル検証</button>
+    <button id="tab-diff" role="tab" aria-selected="false">差分比較</button>
+  </div>
+
+  <section id="panel-single" class="panel active">
+    <div id="dropzone-single" class="dropzone" aria-label="検証するUSDファイルをドロップまたはクリックして選択">
+      USDファイル（.usd/.usda/.usdc/.usdz）をドロップ、またはクリックして選択
+      <input id="input-single" type="file" accept=".usd,.usda,.usdc,.usdz" hidden />
+    </div>
+    <div id="single-status"></div>
+    <div id="single-result"></div>
+  </section>
+
+  <section id="panel-diff" class="panel">
+    <div id="dropzone-before" class="dropzone" aria-label="Before USDファイルをドロップまたはクリックして選択">
+      Before USDファイルをドロップ、またはクリックして選択
+      <input id="input-before" type="file" accept=".usd,.usda,.usdc,.usdz" hidden />
+    </div>
+    <div id="dropzone-after" class="dropzone" aria-label="After USDファイルをドロップまたはクリックして選択">
+      After USDファイルをドロップ、またはクリックして選択
+      <input id="input-after" type="file" accept=".usd,.usda,.usdc,.usdz" hidden />
+    </div>
+    <div id="diff-status"></div>
+    <div id="diff-result"></div>
+  </section>
+
+  <script src="/app.js"></script>
+</body>
+</html>

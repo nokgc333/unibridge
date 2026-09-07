@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ".[dev]"
+      - run: black --check .
+      - run: isort --check .
+      - run: flake8 .
+      - run: mypy core/ cli.py webui/ --exclude adapters/
+      - name: "静的チェック: core/配下がhou/bpyをimportしていないこと（境界検証）"
+        run: |
+          if grep -rn "^import hou\|^from hou\|^import bpy\|^from bpy" core/; then
+            echo "core/ must not depend on hou or bpy"; exit 1
+          fi
+      - name: "静的チェック: exec/evalの不使用（SEC-002）"
+        run: |
+          if grep -rn "exec(\|eval(" core/ adapters/ cli.py webui/; then
+            echo "exec/eval must not be used"; exit 1
+          fi
+      - run: pytest --cov=core --cov-report=term-missing --cov-fail-under=80
+      - run: pip-audit
