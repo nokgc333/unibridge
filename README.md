@@ -1,6 +1,6 @@
 # UniBridge
 
-HoudiniとBlenderの間でOpenUSD（USD）シーンを相互変換・検証するツール。座標系（upAxis）・スケール単位（metersPerUnit）・命名規則の不整合を検出し、CSV/JSON/HTML形式の差分レポートを生成する。
+HoudiniとBlenderの間で受け渡すOpenUSD（USD）シーンの整合を検査するツール。座標系（upAxis）・スケール単位（metersPerUnit）・命名規則の不整合を検出し、CSV/JSON/HTML形式の差分レポートを生成する。変換は、明示的に指定したとき（`scale-check --apply`）だけ行う。
 
 ## 目的・背景
 
