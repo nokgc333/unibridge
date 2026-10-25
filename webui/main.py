@@ -6,11 +6,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from webui.body_limit import RequestBodyLimitMiddleware
 from webui.routers import report, validate
 
 app = FastAPI(title="UniBridge Web GUI", version="0.1.0")
 
 # ローカル実行前提のため開発時は緩め。外部公開時はallow_originsを限定する（SEC-006関連）
+app.add_middleware(RequestBodyLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:8000"],

@@ -71,9 +71,26 @@ blender --background --python cli_blender_entry.py -- --usd out.usda --reexport 
 ## 使用方法（簡易Web GUI）
 
 ```bash
-uvicorn webui.main:app --reload
+uvicorn webui.main:app --host 127.0.0.1 --port 8000 --reload
 # http://localhost:8000 でUSDファイルをドラッグ&ドロップして検証・差分比較
 ```
+
+既定のバインドは `127.0.0.1`（自分のマシンからのみ接続可能）。`--host 0.0.0.0` などで外部に公開する場合は、認証・TLS・リバースプロキシを別途用意し、`webui/main.py` の `allow_origins` も限定すること（このWeb UIには認証機能がない）。
+
+アップロードの安全対策（信頼できないUSDを受け付ける前提）:
+
+- リクエスト本文は `Content-Length` で事前に判定し、チャンク読み込みで上限を超えた時点で打ち切る（413）。
+- 同時アップロード数に上限を設ける（超過は503）。一時ファイルは成否にかかわらず削除する。
+- USDの解析は別プロセスで実行し、制限時間を超えたら強制終了する（504）。
+- 絶対パス・`..`・URLスキームを含む外部参照（sublayer / reference / payload）を持つUSDは拒否する（422）。
+
+上限は環境変数で変更できる:
+
+| 環境変数 | 既定値 | 意味 |
+| --- | --- | --- |
+| `UNIBRIDGE_MAX_UPLOAD_BYTES` | `209715200`（200MB） | 1ファイルあたりの上限 |
+| `UNIBRIDGE_MAX_CONCURRENT_UPLOADS` | `4` | 同時に処理するアップロード数 |
+| `UNIBRIDGE_PARSE_TIMEOUT_SECONDS` | `30` | 1リクエストの解析の制限時間（秒） |
 
 ## テスト
 
@@ -83,7 +100,7 @@ black --check . && isort --check . && flake8 . && mypy core/ cli.py webui/ --exc
 python tests/benchmark.py   # NFR-001性能測定(手動実行、CI組み込みなし)
 ```
 
-現状: **pytest 53件全てpass、core/カバレッジ94.66%**（`--cov-fail-under=80`を満たす）。black/isort/flake8/mypy strict全てパス。
+現状: **pytest 97件全てpass、core/カバレッジ93%**（`--cov-fail-under=80`を満たす）。black/isort/flake8/mypy strict全てパス。
 
 ### ドキュメントと実装の乖離（実装時に判明、修正済み）
 
