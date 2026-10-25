@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import cli
@@ -152,3 +153,69 @@ class TestBatchCommand:
         code = cli.main(["batch", "--dir", "no_such_dir"])
 
         assert code == cli.EXIT_FILE_NOT_FOUND
+
+
+class TestBrokenUsdInput:
+    def _broken_files(self, tmp_path: Path) -> dict[str, Path]:
+        empty = tmp_path / "empty.usda"
+        empty.write_text("", encoding="utf-8")
+        garbage = tmp_path / "garbage.usdc"
+        garbage.write_bytes(b"not a crate file" * 64)
+        return {"empty": empty, "garbage": garbage}
+
+    def test_diff_with_broken_file_exits_10_without_a_traceback(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        for broken in self._broken_files(tmp_path).values():
+            code = cli.main(
+                [
+                    "diff",
+                    "--before",
+                    "sample_scenes/consistent_scene.usda",
+                    "--after",
+                    str(broken),
+                ]
+            )
+
+            assert code == cli.EXIT_FILE_NOT_FOUND
+        err = capsys.readouterr().err
+        assert "Traceback" not in err
+        assert "corrupt or unsupported" in err
+
+    def test_scale_check_with_broken_file_exits_10(self, tmp_path: Path, capsys) -> None:
+        broken = self._broken_files(tmp_path)["empty"]
+
+        code = cli.main(
+            [
+                "scale-check",
+                "--source",
+                str(broken),
+                "--target",
+                "sample_scenes/consistent_scene.usda",
+            ]
+        )
+
+        assert code == cli.EXIT_FILE_NOT_FOUND
+        assert "Traceback" not in capsys.readouterr().err
+
+    def test_hierarchy_check_with_broken_file_exits_10(self, tmp_path: Path, capsys) -> None:
+        broken = self._broken_files(tmp_path)["garbage"]
+
+        code = cli.main(["hierarchy-check", "--usd", str(broken)])
+
+        assert code == cli.EXIT_FILE_NOT_FOUND
+        assert "Traceback" not in capsys.readouterr().err
+
+    def test_batch_reports_a_broken_file_as_a_failure_and_continues(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        (tmp_path / "broken.usda").write_text("", encoding="utf-8")
+        good = Path("sample_scenes/consistent_scene.usda")
+        (tmp_path / "good.usda").write_bytes(good.read_bytes())
+
+        code = cli.main(["batch", "--dir", str(tmp_path), "--format", "json"])
+
+        payload = json.loads(capsys.readouterr().out)
+        assert code == cli.EXIT_MISMATCH_FOUND
+        assert len(payload["results"]) == 1
+        assert len(payload["failures"]) == 1

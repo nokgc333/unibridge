@@ -10,7 +10,7 @@
 終了コード（仕様書§5.7）:
   0: 検証OK（不整合0件）
   1: 不整合N件検出（N>=1）
-  10: E001 対象USDファイルが存在しない/読み込めない
+  10: E001 対象USDファイルが存在しない/読み込めない（破損・非対応フォーマットを含む）
   11: E002 不正なパラメータ値
   12: E003 指定ノードが期待する種別でない（本CLIでは未使用、Houdini側専用）
   13: E004 命名規則YAMLの構文エラー
@@ -27,8 +27,6 @@ from concurrent.futures import ProcessPoolExecutor
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-from pxr import Usd
-
 from core.diff_report import (
     build_diff_report,
     report_to_csv_rows,
@@ -43,6 +41,7 @@ from core.scale_check import (
     check_up_axis_mismatch,
     extract_metadata,
 )
+from core.stage_loader import open_stage
 
 EXIT_OK = 0
 EXIT_MISMATCH_FOUND = 1
@@ -54,16 +53,6 @@ EXIT_OUTPUT_NOT_WRITABLE = 14
 
 DEFAULT_RULES_PATH = Path("rules/default.yaml")
 USD_GLOB_PATTERNS = ("*.usd", "*.usda", "*.usdc")
-
-
-def _open_stage(path: Path) -> Usd.Stage:
-    """USDファイルを開く。存在しない/読み込めない場合はValueErrorを送出する（E001対応）。"""
-    if not path.exists():
-        raise ValueError(f"'{path}' does not exist")
-    stage = Usd.Stage.Open(str(path))
-    if stage is None:
-        raise ValueError(f"'{path}' could not be opened as a USD stage (corrupt or unsupported)")
-    return stage
 
 
 def _print_entries(entries: list[DiffEntry]) -> None:
@@ -81,8 +70,8 @@ def _cmd_diff(args: argparse.Namespace) -> int:
     before_path = Path(args.before)
     after_path = Path(args.after)
     try:
-        before_stage = _open_stage(before_path)
-        after_stage = _open_stage(after_path)
+        before_stage = open_stage(before_path)
+        after_stage = open_stage(after_path)
     except ValueError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return EXIT_FILE_NOT_FOUND
@@ -125,8 +114,8 @@ def _cmd_scale_check(args: argparse.Namespace) -> int:
     source_path = Path(args.source)
     target_path = Path(args.target)
     try:
-        source_stage = _open_stage(source_path)
-        target_stage = _open_stage(target_path)
+        source_stage = open_stage(source_path)
+        target_stage = open_stage(target_path)
     except ValueError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return EXIT_FILE_NOT_FOUND
@@ -170,7 +159,7 @@ def _cmd_hierarchy_check(args: argparse.Namespace) -> int:
     rules_path = Path(args.rules) if args.rules else DEFAULT_RULES_PATH
 
     try:
-        stage = _open_stage(usd_path)
+        stage = open_stage(usd_path)
     except ValueError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return EXIT_FILE_NOT_FOUND
@@ -203,7 +192,7 @@ def _validate_single_file(path_str: str, rules_path_str: str) -> BatchResult:
     例外はそのまま送出する（SEC-004: 他ワーカーへの波及防止は呼び出し側のFuture単位の分離で担保）。
     """
     path = Path(path_str)
-    stage = _open_stage(path)
+    stage = open_stage(path)
     metadata = extract_metadata(stage, str(path))
 
     entries: list[DiffEntry] = []
