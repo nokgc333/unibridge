@@ -118,3 +118,16 @@ class TestBatchParts:
         assert lines[0].startswith("path,up_axis,meters_per_unit")
         assert lines[1].startswith("a.usda,Z,0.01,5,0")
         assert lines[2].startswith("b.usda,ERROR")
+
+
+def test_the_benchmark_table_has_a_row_per_scale() -> None:
+    from tests.benchmark import to_markdown
+
+    rows = [
+        {"prims": 2000, "open": 0.1, "metadata": 0.0, "naming": 0.2, "integrity": 0.3, "diff": 0.4}
+    ]
+
+    table = to_markdown(rows).splitlines()
+
+    assert len(table) == 3
+    assert table[2].startswith("| 2,000 | 0.100 s |")
