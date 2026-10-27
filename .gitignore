@@ -8,3 +8,5 @@ __pycache__/
 htmlcov/
 .DS_Store
 tests/fixtures/large_scene/*.usd*
+dist/
+build/
