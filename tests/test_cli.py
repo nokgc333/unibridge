@@ -304,3 +304,35 @@ class TestDiffOutputErrors:
 
         assert code == EXIT_OUTPUT_NOT_WRITABLE
         assert "cannot write to" in capsys.readouterr().err
+
+
+class TestIntegrityCheckCommand:
+    def test_a_clean_scene_exits_zero(self, tmp_path: Path, capsys) -> None:
+        path = tmp_path / "clean.usda"
+        path.write_text(
+            '#usda 1.0\n(\n    defaultPrim = "root"\n)\n\ndef Xform "root"\n{\n}\n',
+            encoding="utf-8",
+        )
+
+        code = main(["integrity-check", "--usd", str(path)])
+
+        assert code == 0
+        assert "No inconsistencies detected." in capsys.readouterr().out
+
+    def test_a_mesh_without_material_and_uv_exits_one_and_names_both(
+        self, tmp_path: Path, capsys
+    ) -> None:
+        path = tmp_path / "bare.usda"
+        path.write_text(
+            '#usda 1.0\n(\n    defaultPrim = "m"\n)\n\ndef Mesh "m"\n{\n}\n', encoding="utf-8"
+        )
+
+        code = main(["integrity-check", "--usd", str(path)])
+
+        out = capsys.readouterr().out
+        assert code == EXIT_MISMATCH_FOUND
+        assert "material_binding" in out
+        assert "uv_missing" in out
+
+    def test_a_missing_file_exits_10(self, tmp_path: Path) -> None:
+        assert main(["integrity-check", "--usd", str(tmp_path / "none.usda")]) == 10

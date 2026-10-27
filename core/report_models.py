@@ -47,6 +47,11 @@ class DiffCategory(str, Enum):
     MATERIAL_COUNT_DIFF = "material_count_diff"
     PRIM_REMOVED = "prim_removed"
     PRIM_ADDED = "prim_added"
+    COMPLIANCE_VIOLATION = "compliance_violation"
+    MATERIAL_BINDING = "material_binding"
+    UV_MISSING = "uv_missing"
+    VARIANT_SELECTION = "variant_selection"
+    PURPOSE_INVALID = "purpose_invalid"
 
 
 @dataclass(frozen=True)
