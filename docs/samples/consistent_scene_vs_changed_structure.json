@@ -1,0 +1,36 @@
+{
+  "source_stage": "sample_scenes/consistent_scene.usda",
+  "target_stage": "sample_scenes/changed_structure.usda",
+  "generated_at": "2026-10-27T12:09:57.696194+00:00",
+  "prim_count_before": 4,
+  "prim_count_after": 4,
+  "material_count_before": 1,
+  "material_count_after": 0,
+  "has_errors": true,
+  "entries": [
+    {
+      "category": "prim_removed",
+      "target_path": "/root/mat_hero",
+      "message": "prim /root/mat_hero exists in before but missing in after",
+      "severity": "error",
+      "before_value": null,
+      "after_value": null
+    },
+    {
+      "category": "prim_added",
+      "target_path": "/root/GeoExtra",
+      "message": "prim /root/GeoExtra newly appears in after (not present in before)",
+      "severity": "info",
+      "before_value": null,
+      "after_value": null
+    },
+    {
+      "category": "material_count_diff",
+      "target_path": "(stage)",
+      "message": "material count changed: 1 -> 0",
+      "severity": "warning",
+      "before_value": "1",
+      "after_value": "0"
+    }
+  ]
+}

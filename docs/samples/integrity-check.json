@@ -1,0 +1,33 @@
+{
+  "schema_version": "1",
+  "tool": "unibridge",
+  "generated_at": "2026-10-27T12:09:58.102313+00:00",
+  "subject": "sample_scenes/changed_structure.usda",
+  "has_errors": false,
+  "findings": [
+    {
+      "rule": "material_binding",
+      "severity": "warning",
+      "target": "/root/geo_body",
+      "message": "mesh has no material binding"
+    },
+    {
+      "rule": "material_binding",
+      "severity": "warning",
+      "target": "/root/GeoExtra",
+      "message": "mesh has no material binding"
+    },
+    {
+      "rule": "uv_missing",
+      "severity": "warning",
+      "target": "/root/geo_body",
+      "message": "mesh has no 'st' primvar (UV)"
+    },
+    {
+      "rule": "uv_missing",
+      "severity": "warning",
+      "target": "/root/GeoExtra",
+      "message": "mesh has no 'st' primvar (UV)"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+category,severity,target_path,message,before_value,after_value
+prim_removed,error,/root/mat_hero,prim /root/mat_hero exists in before but missing in after,,
+prim_added,info,/root/GeoExtra,prim /root/GeoExtra newly appears in after (not present in before),,
+material_count_diff,warning,(stage),material count changed: 1 -> 0,1,0
