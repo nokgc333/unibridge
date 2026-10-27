@@ -336,3 +336,17 @@ class TestIntegrityCheckCommand:
 
     def test_a_missing_file_exits_10(self, tmp_path: Path) -> None:
         assert main(["integrity-check", "--usd", str(tmp_path / "none.usda")]) == 10
+
+
+def test_integrity_check_json_output_follows_the_common_report_shape(
+    tmp_path: Path, capsys
+) -> None:
+    path = tmp_path / "bare.usda"
+    path.write_text('#usda 1.0\n(\n    defaultPrim = "m"\n)\n\ndef Mesh "m"\n{\n}\n', "utf-8")
+
+    code = main(["integrity-check", "--usd", str(path), "--format", "json"])
+
+    payload = json.loads(capsys.readouterr().out)
+    assert code == EXIT_MISMATCH_FOUND
+    assert payload["tool"] == "unibridge"
+    assert {f["rule"] for f in payload["findings"]} == {"material_binding", "uv_missing"}

@@ -4,7 +4,7 @@
   python cli.py diff --before <path> --after <path> [--format {csv,json,html,all}] [--out <dir>]
   python cli.py scale-check --source <path> --target <path> [--apply] [--target-axis Y|Z]
                              [--target-mpu <float>] [--out <path>]
-  python cli.py integrity-check --usd <path>
+  python cli.py integrity-check --usd <path> [--format {text,json}]
   python cli.py hierarchy-check --usd <path> [--rules <path>]
   python cli.py batch --dir <path> [--format {csv,json}] [--workers <int>]
 
@@ -73,6 +73,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         "integrity-check", help="既定Prim・参照・マテリアル・UV・variant・purposeの整合をチェック"
     )
     integ_p.add_argument("--usd", required=True)
+    integ_p.add_argument("--format", choices=["text", "json"], default="text")
     integ_p.set_defaults(func=integrity.run)
 
     batch_p = sub.add_parser("batch", help="ディレクトリ配下のUSDファイルを一括検証")
