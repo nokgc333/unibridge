@@ -11,6 +11,7 @@ from commands import batch
 from commands.common import open_stages, print_entries
 from commands.exit_codes import EXIT_FILE_NOT_FOUND
 from core.report_models import DiffCategory, DiffEntry, Severity
+from core.rules import DEFAULT_RULES_PATH
 
 SAMPLES = Path("sample_scenes")
 
@@ -82,7 +83,7 @@ class TestBatchParts:
         bad = tmp_path / "bad.usda"
         bad.write_text("not usd {{{", encoding="utf-8")
 
-        results, failures = batch.validate_all([good, bad], "rules/default.yaml", 2)
+        results, failures = batch.validate_all([good, bad], str(DEFAULT_RULES_PATH), 2)
 
         assert [r.path for r in results] == [str(good)]
         assert [f["path"] for f in failures] == [str(bad)]

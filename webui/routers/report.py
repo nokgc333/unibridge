@@ -34,6 +34,6 @@ def get_report_by_id(report_id: str) -> dict[str, object]:
 def get_rules() -> dict[str, object]:
     """現在の命名規則YAMLの内容を表示用に取得する（yaml.safe_loadのみ使用、SEC-001）。"""
     if not DEFAULT_RULES_PATH.exists():
-        raise HTTPException(status_code=404, detail="rules/default.yaml not found")
+        raise HTTPException(status_code=404, detail="default naming rules not found")
     raw = yaml.safe_load(DEFAULT_RULES_PATH.read_text(encoding="utf-8"))
     return dict(raw)
