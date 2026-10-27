@@ -165,7 +165,7 @@ python tests/benchmark.py   # 性能測定(手動実行、CI組み込みなし�
 
 ## 実機検証結果
 
-版ごとの記録は [docs/verification/](docs/verification/README.md) に残している(Blender 3.5.1 / 3.6.0 / 4.0.0 / 4.5.3 / 5.0.0 は 2026-10-27 に全項目 PASS、Houdini 22.0.429)。性能は [docs/benchmarks.md](docs/benchmarks.md)。以下は最初の検証(2026-09)の経緯。
+版ごとの記録は [docs/verification/](docs/verification/README.md) に残している(Blender 3.5.1 / 3.6.0 / 4.0.0 / 4.5.3 / 5.0.0 は 2026-10-27 に全項目 PASS、Houdini 22.0.429 / 22.0.466)。性能は [docs/benchmarks.md](docs/benchmarks.md)。以下は最初の検証(2026-09)の経緯。
 
 ### Blender実機検証（Blender 4.0.0、`blender --background`、実機検証済み）
 
