@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from webui.body_limit import RequestBodyLimitMiddleware
 from webui.routers import report, validate
+
+STATIC_DIR = Path(__file__).parent / "static"
 
 app = FastAPI(title="UniBridge Web GUI", version="0.1.0")
 
@@ -29,4 +33,4 @@ def healthz() -> dict[str, str]:
     return {"status": "ok"}
 
 
-app.mount("/", StaticFiles(directory="webui/static", html=True), name="static")
+app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

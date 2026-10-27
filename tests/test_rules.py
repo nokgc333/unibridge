@@ -6,12 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from core.rules import RuleFileError, load_naming_rules
+from core.rules import DEFAULT_RULES_PATH, RuleFileError, load_naming_rules
 
 
 class TestLoadNamingRules:
     def test_default_rules_file_loads_successfully(self) -> None:
-        rules, exclude_patterns = load_naming_rules(Path("rules/default.yaml"))
+        rules, exclude_patterns = load_naming_rules(DEFAULT_RULES_PATH)
 
         assert len(rules) == 3
         assert len(exclude_patterns) == 1

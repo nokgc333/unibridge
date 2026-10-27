@@ -27,7 +27,7 @@ unibridge/
 ├── cli_houdini_entry.py      # hythonから起動するCLIエントリポイント
 ├── cli_blender_entry.py      # blender --backgroundから起動するCLIエントリポイント
 ├── webui/                    # FastAPI + 静的HTML/fetchの簡易Web GUI(ADR-0004)
-├── rules/default.yaml        # 既定命名規則
+├── core/default_rules.yaml   # 既定命名規則(パッケージに同梱)
 ├── sample_scenes/            # 検証用フィクスチャUSDA(mismatched_scale/upaxis/consistent)
 └── tests/
 ```
@@ -37,6 +37,17 @@ unibridge/
 - Python 3.11+ / usd-core 26.8（pip配布、DCC非依存）
 - FastAPI + uvicorn（簡易Web GUI）/ PyYAML（`yaml.safe_load`のみ）
 - pytest / pytest-cov / mypy(strict, adapters/のみhou/bpyスタブ不在のため除外) / black / isort / flake8 / pip-audit
+
+## インストール（利用者向け）
+
+TestPyPI への公開を設定したあとは、次の形で入れる(公開の設定は「リリース手順」を参照)。
+
+```bash
+pipx install --index-url https://test.pypi.org/simple/ --pip-args="--extra-index-url https://pypi.org/simple/" unibridge
+unibridge integrity-check --usd scene.usda
+```
+
+ソースから入れる場合は、`pip install .` で `unibridge` コマンドが使える(既定の命名規則と Web UI の静的ファイルは同梱される)。
 
 ## インストール（開発・テスト用、Houdini/Blender不要）
 
@@ -182,6 +193,14 @@ Houdini MCP（`houdini`）は本セッションでも引き続き`ConnectionRefu
 | `export_stage_from_lop()`の`stage.GetRootLayer().Export()` | エクスポートしたUSDファイルにジオメトリ等のプリムが一切含まれず、`subLayers`に匿名レイヤーへの参照のみが書き出される（Houdiniセッション終了後は解決不能なファイルになる） | Houdini LOPノードの`stage()`が返す合成済みStageは、各ノードの出力を保持する複数の匿名sublayer（`anon:0x...:LOP`）から構成されている。`stage.GetRootLayer()`はそのうちルートレイヤー（sublayer参照のみを持つ空に近いレイヤー）しか指さないため、それだけを`Export()`すると実際のプリム定義（他のsublayerにある）が失われる | `stage.GetRootLayer().Export()`を`stage.Export()`（`Usd.Stage.Export`、合成結果をフラット化してから書き出す）に修正。修正後、実際にsphere/cubeプリムを含む正しいUSDファイルが出力されることを確認した |
 
 修正後、`export_stage_from_lop`/`list_lop_children`のエラーケース・正常系ともに全て期待通りに動作することを確認した。コードはScene DoctorのPorts & Adaptersパターン（`hou_adapter.py`）に倣って実装済みであり、`adapters/houdini_adapter.py`・`cli_houdini_entry.py`のdocstringは実機検証済みである旨に更新した。
+
+## リリース手順
+
+1. `pyproject.toml` の `version` を上げ、`CHANGELOG.md` に同じ版の節を足す(テストが両者の一致を確かめる)
+2. `main` にマージしたあと、`git tag v<版>` を打って push する
+3. `Release` ワークフローが、版の一致を確かめ、ビルドして TestPyPI に公開し、GitHub Releases を作る
+
+TestPyPI への公開には、PyPI 側の Trusted Publishing の設定(リポジトリ `nokgc333/unibridge`、ワークフロー `release.yml`、環境 `testpypi`)が要る。アカウントの設定なので、利用者本人が行う。
 
 ## セキュリティに関する注意
 
