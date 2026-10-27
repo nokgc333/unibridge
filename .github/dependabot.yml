@@ -1,0 +1,14 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dev-tools:
+        patterns: ["black", "isort", "flake8", "mypy", "pytest*", "hypothesis", "jsonschema", "build", "twine", "pip-audit", "types-*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
