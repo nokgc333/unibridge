@@ -12,6 +12,7 @@ DCC 本体(Blender・Houdini)でしか確かめられないことを、版ごと
 | Blender 4.5.3 LTS | 2026-10-27 | 5/5 PASS | [blender-4.5.3.md](blender-4.5.3.md) |
 | Blender 5.0.0 | 2026-10-27 | 5/5 PASS | [blender-5.0.0.md](blender-5.0.0.md) |
 | Houdini 22.0.429 Indie | 2026-09-08 | 全項目 PASS | [houdini-22.0.429.md](houdini-22.0.429.md) |
+| Houdini 22.0.466 Indie | 2026-10-27 | 7/7 PASS | [houdini-22.0.466.md](houdini-22.0.466.md) |
 
 ## 手順
 
