@@ -23,7 +23,7 @@ unibridge/
 ├── adapters/
 │   ├── houdini_adapter.py   # hou.LopNode経由のUSDエクスポート(hython専用、実機未検証)
 │   └── blender_adapter.py   # bpy.ops.wm.usd_import/export経由の読込検証(blender --background専用、実機検証済み)
-├── cli.py                    # core層のみで完結するCLI(diff/scale-check/hierarchy-check/batch)
+├── cli.py                    # core層のみで完結するCLI(diff/scale-check/integrity-check/hierarchy-check/batch)
 ├── cli_houdini_entry.py      # hythonから起動するCLIエントリポイント
 ├── cli_blender_entry.py      # blender --backgroundから起動するCLIエントリポイント
 ├── webui/                    # FastAPI + 静的HTML/fetchの簡易Web GUI(ADR-0004)
@@ -55,9 +55,12 @@ python cli.py diff --before sample_scenes/consistent_scene.usda \
                     --after sample_scenes/mismatched_scale.usda --format json
 python cli.py scale-check --source sample_scenes/consistent_scene.usda \
                            --target sample_scenes/mismatched_scale.usda
+python cli.py integrity-check --usd sample_scenes/consistent_scene.usda --format json
 python cli.py hierarchy-check --usd sample_scenes/consistent_scene.usda
 python cli.py batch --dir sample_scenes/ --format json --workers 4
 ```
+
+`integrity-check` は、既定 Prim・解決できない参照・マテリアルの割り当て・UV・variant の選択・purpose を調べる([ADR-0006](docs/adr/0006-integrity-checks-without-usdchecker.md))。`--format json` は、ツール間で共通の形式([スキーマ](docs/schema/common-report.schema.json))で出力する。
 
 終了コード: `0`=不整合なし / `1`=不整合あり / `10`〜`14`=エラー系（詳細は [docs/仕様書.md §5.7](docs/仕様書.md)）
 
@@ -95,12 +98,12 @@ uvicorn webui.main:app --host 127.0.0.1 --port 8000 --reload
 ## テスト
 
 ```bash
-pytest --cov=core --cov-report=term-missing --cov-fail-under=80
-black --check . && isort --check . && flake8 . && mypy core/ cli.py webui/ --exclude adapters/
-python tests/benchmark.py   # NFR-001性能測定(手動実行、CI組み込みなし)
+pytest --cov-fail-under=90
+black --check . && isort --check . && flake8 . && mypy core/ commands/ cli.py webui/
+python tests/benchmark.py   # 性能測定(手動実行、CI組み込みなし。結果は docs/benchmarks.md)
 ```
 
-現状: **pytest 97件全てpass、core/カバレッジ93%**（`--cov-fail-under=80`を満たす）。black/isort/flake8/mypy strict全てパス。
+現状: **pytest 213件全てpass、カバレッジ98%**(`core/` `commands/` `adapters/` が対象。`adapters/` は偽の `hou` / `bpy` による契約テスト)。black/isort/flake8/mypy strict全てパス。Hypothesis による性質テストを含む。
 
 ### ドキュメントと実装の乖離（実装時に判明、修正済み）
 
@@ -117,7 +120,9 @@ python tests/benchmark.py   # NFR-001性能測定(手動実行、CI組み込み�
 
 `pyproject.toml`のバージョン上限を撤廃し（`usd-core>=25.11`, `pytest>=9.0.3`）、実際に`usd-core 26.8`・`pytest 9.1.1`へ更新することで解消した（先行プロジェクトpipeinitでの対応実績に倣う）。更新後も`pytest --cov=core --cov-report=term-missing --cov-fail-under=80`（53件pass、カバレッジ94.66%）、`black --check . && isort --check . && flake8 . && mypy core/ cli.py webui/ --exclude adapters/`は全てパスし、`usd-core 26.8`での`metersPerUnit`未設定時の既定値も0.01のまま変化していないことを実測で再確認した。`pip-audit`実行結果は`No known vulnerabilities found`。
 
-## 実機検証結果（2026-09-07実施）
+## 実機検証結果
+
+版ごとの記録は [docs/verification/](docs/verification/README.md) に残している(Blender 3.5.1 / 3.6.0 / 4.0.0 / 4.5.3 / 5.0.0 は 2026-10-27 に全項目 PASS、Houdini 22.0.429)。性能は [docs/benchmarks.md](docs/benchmarks.md)。以下は最初の検証(2026-09)の経緯。
 
 ### Blender実機検証（Blender 4.0.0、`blender --background`、実機検証済み）
 
