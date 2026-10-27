@@ -49,3 +49,20 @@ class TestLoadNamingRules:
         assert "yaml.load(" not in source
         assert "yaml.unsafe_load" not in source
         assert "yaml.full_load" not in source
+
+
+def test_an_exclude_pattern_that_is_not_a_regex_is_a_rule_file_error(tmp_path: Path) -> None:
+    from core.rules import RuleFileError, load_naming_rules
+
+    rules = tmp_path / "rules.yaml"
+    rules.write_text(
+        "schema_version: 1\n"
+        "project_type: test\n"
+        "naming_rules: []\n"
+        "exclude_patterns:\n"
+        '  - "("\n',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuleFileError, match="malformed"):
+        load_naming_rules(rules)

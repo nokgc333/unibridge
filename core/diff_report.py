@@ -14,13 +14,6 @@ from pxr import Usd, UsdShade
 from core.report_models import DiffCategory, DiffEntry, DiffReport, Severity
 
 
-def _count_prims_by_type(stage: Usd.Stage) -> dict[str, int]:
-    counts: dict[str, int] = {}
-    for prim in stage.Traverse():
-        counts[prim.GetTypeName()] = counts.get(prim.GetTypeName(), 0) + 1
-    return counts
-
-
 def _material_count(stage: Usd.Stage) -> int:
     return sum(1 for prim in stage.Traverse() if prim.IsA(UsdShade.Material))
 

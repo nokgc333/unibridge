@@ -211,3 +211,45 @@ class TestApplyScaleConversion:
 
         with pytest.raises(ValueError):
             apply_scale_conversion(stage, 0.0, str(tmp_path / "out.usda"))
+
+
+class TestAxisRotationMatrix:
+    @pytest.mark.parametrize(
+        ("source", "target"),
+        [("X", "Y"), ("Y", "X"), ("X", "Z"), ("Z", "X")],
+    )
+    def test_an_axis_other_than_y_or_z_is_not_supported(self, source: str, target: str) -> None:
+        from core.scale_check import _up_axis_rotation_matrix
+
+        with pytest.raises(ValueError, match="unsupported axis combination"):
+            _up_axis_rotation_matrix(source, target)
+
+    def test_the_same_axis_gives_the_identity(self) -> None:
+        from core.scale_check import _up_axis_rotation_matrix
+
+        assert _up_axis_rotation_matrix("Y", "Y") == _up_axis_rotation_matrix("Z", "Z")
+
+
+class TestConversionWithoutDefaultPrim:
+    def _stage_without_default_prim(self) -> Usd.Stage:
+        stage = Usd.Stage.CreateInMemory()
+        stage.DefinePrim("/world", "Xform")
+        return stage
+
+    def test_up_axis_conversion_needs_a_default_prim(self, tmp_path: Path) -> None:
+        stage = self._stage_without_default_prim()
+
+        with pytest.raises(ValueError, match="no default prim"):
+            apply_up_axis_conversion(stage, "Z", str(tmp_path / "out.usda"))
+
+    def test_scale_conversion_needs_a_default_prim(self, tmp_path: Path) -> None:
+        stage = self._stage_without_default_prim()
+
+        with pytest.raises(ValueError, match="no default prim"):
+            apply_scale_conversion(stage, 0.01, str(tmp_path / "out.usda"))
+
+    def test_scale_conversion_refuses_a_zero_target(self, tmp_path: Path) -> None:
+        stage = self._stage_without_default_prim()
+
+        with pytest.raises(ValueError, match="non-zero"):
+            apply_scale_conversion(stage, 0, str(tmp_path / "out.usda"))

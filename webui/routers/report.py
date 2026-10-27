@@ -3,17 +3,15 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import yaml
 from fastapi import APIRouter, HTTPException
 
 from core.diff_report import report_to_json
+from core.rules import DEFAULT_RULES_PATH
 from webui.store import get_report
 
 router = APIRouter()
-
-DEFAULT_RULES_PATH = Path("rules/default.yaml")
 
 
 @router.get("/reports/{report_id}")

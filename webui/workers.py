@@ -5,15 +5,13 @@ from pathlib import Path
 from core.diff_report import build_diff_report
 from core.hierarchy_check import check_naming
 from core.report_models import DiffEntry, DiffReport
-from core.rules import RuleFileError, load_naming_rules
+from core.rules import DEFAULT_RULES_PATH, RuleFileError, load_naming_rules
 from core.scale_check import (
     check_scale_mismatch,
     check_up_axis_mismatch,
     extract_metadata,
 )
 from core.stage_loader import open_stage
-
-DEFAULT_RULES_PATH = Path("rules/default.yaml")
 
 
 def entries_to_json(entries: list[DiffEntry]) -> list[dict[str, object]]:

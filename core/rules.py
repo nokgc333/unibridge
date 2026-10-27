@@ -10,6 +10,7 @@ import yaml
 
 from core.hierarchy_check import NamingRule
 
+DEFAULT_RULES_PATH = Path("rules/default.yaml")
 REQUIRED_KEYS = {"schema_version", "project_type", "naming_rules"}
 
 

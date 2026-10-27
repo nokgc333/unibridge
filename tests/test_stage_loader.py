@@ -147,3 +147,66 @@ def Xform "A" (
         stage = open_stage(layer)
 
         assert stage.GetPrimAtPath("/FromOther").IsValid()
+
+
+class TestUnsafeAssetPaths:
+    @pytest.mark.parametrize(
+        "asset_path",
+        [
+            "https://example.com/a.usd",
+            "file:///etc/passwd",
+            "/etc/passwd",
+            "C:\\Windows\\a.usd",
+            "\\\\server\\share\\a.usd",
+            "~/a.usd",
+            "../a.usd",
+            "a/../../b.usd",
+            "a\\..\\b.usd",
+        ],
+    )
+    def test_is_unsafe(self, asset_path: str) -> None:
+        from core.stage_loader import _is_unsafe_asset_path
+
+        assert _is_unsafe_asset_path(asset_path) is True
+
+    @pytest.mark.parametrize("asset_path", ["", "a.usd", "sub/dir/a.usd", "./a.usd", "a..b.usd"])
+    def test_is_safe(self, asset_path: str) -> None:
+        from core.stage_loader import _is_unsafe_asset_path
+
+        assert _is_unsafe_asset_path(asset_path) is False
+
+
+class TestUntrustedInputBranches:
+    def test_a_layer_that_cannot_be_found_is_reported_as_unopenable(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from pxr import Sdf
+
+        monkeypatch.setattr(Sdf.Layer, "FindOrOpen", staticmethod(lambda _path: None))
+        path = _write(tmp_path / "a.usda", "#usda 1.0\n")
+
+        with pytest.raises(StageOpenError, match="could not be opened as a USD layer"):
+            open_stage(path, allow_external_references=False)
+
+    def test_a_layer_that_raises_while_opening_is_reported_as_unopenable(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from pxr import Sdf, Tf
+
+        def boom(_path: str) -> None:
+            raise Tf.ErrorException("boom")
+
+        monkeypatch.setattr(Sdf.Layer, "FindOrOpen", staticmethod(boom))
+        path = _write(tmp_path / "a.usda", "#usda 1.0\n")
+
+        with pytest.raises(StageOpenError, match="could not be opened as a USD layer"):
+            open_stage(path, allow_external_references=False)
+
+    def test_a_stage_that_comes_back_empty_is_reported_as_corrupt(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(Usd.Stage, "Open", staticmethod(lambda _path: None))
+        path = _write(tmp_path / "a.usda", "#usda 1.0\n")
+
+        with pytest.raises(StageOpenError, match="corrupt or unsupported"):
+            open_stage(path)
