@@ -15,7 +15,11 @@ import bpy
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from adapters.blender_adapter import UsdImportError, import_usd, reexport_usd  # noqa: E402
+from adapters.blender_adapter import (  # noqa: E402
+    UsdImportError,
+    import_usd,
+    reexport_usd,
+)
 
 SAMPLE = Path(__file__).resolve().parent.parent / "sample_scenes" / "consistent_scene.usda"
 
