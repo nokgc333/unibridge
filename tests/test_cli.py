@@ -6,6 +6,12 @@ import json
 from pathlib import Path
 
 import cli
+from cli import (
+    EXIT_INVALID_PARAMETER,
+    EXIT_MISMATCH_FOUND,
+    EXIT_OUTPUT_NOT_WRITABLE,
+    main,
+)
 
 
 class TestDiffCommand:
@@ -219,3 +225,82 @@ class TestBrokenUsdInput:
         assert code == cli.EXIT_MISMATCH_FOUND
         assert len(payload["results"]) == 1
         assert len(payload["failures"]) == 1
+
+
+class TestScaleCheckApply:
+    def test_apply_without_out_is_an_invalid_parameter(self, capsys) -> None:
+        code = main(
+            [
+                "scale-check",
+                "--source",
+                "sample_scenes/mismatched_scale.usda",
+                "--target",
+                "sample_scenes/consistent_scene.usda",
+                "--apply",
+            ]
+        )
+
+        assert code == EXIT_INVALID_PARAMETER
+        assert "--apply requires --out" in capsys.readouterr().err
+
+    def test_apply_writes_the_converted_file_and_still_reports_the_mismatch(
+        self, tmp_path: Path
+    ) -> None:
+        out = tmp_path / "converted.usda"
+
+        code = main(
+            [
+                "scale-check",
+                "--source",
+                "sample_scenes/mismatched_scale.usda",
+                "--target",
+                "sample_scenes/consistent_scene.usda",
+                "--apply",
+                "--out",
+                str(out),
+            ]
+        )
+
+        assert code == EXIT_MISMATCH_FOUND
+        assert out.exists()
+
+    def test_apply_to_an_unwritable_path_exits_14(self, tmp_path: Path, capsys) -> None:
+        blocker = tmp_path / "file"
+        blocker.write_text("x", encoding="utf-8")
+
+        code = main(
+            [
+                "scale-check",
+                "--source",
+                "sample_scenes/mismatched_scale.usda",
+                "--target",
+                "sample_scenes/consistent_scene.usda",
+                "--apply",
+                "--out",
+                str(blocker / "sub" / "out.usda"),
+            ]
+        )
+
+        assert code == EXIT_OUTPUT_NOT_WRITABLE
+        assert "cannot write to" in capsys.readouterr().err
+
+
+class TestDiffOutputErrors:
+    def test_an_unwritable_report_directory_exits_14(self, tmp_path: Path, capsys) -> None:
+        blocker = tmp_path / "file"
+        blocker.write_text("x", encoding="utf-8")
+
+        code = main(
+            [
+                "diff",
+                "--before",
+                "sample_scenes/consistent_scene.usda",
+                "--after",
+                "sample_scenes/mismatched_scale.usda",
+                "--out",
+                str(blocker / "reports"),
+            ]
+        )
+
+        assert code == EXIT_OUTPUT_NOT_WRITABLE
+        assert "cannot write to" in capsys.readouterr().err
