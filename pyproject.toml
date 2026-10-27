@@ -24,6 +24,7 @@ dev = [
     "pip-audit>=2.7",
     "types-PyYAML",
     "httpx>=0.27",
+    "hypothesis>=6.100",
 ]
 
 [build-system]
@@ -31,7 +32,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["core*", "adapters*", "webui*"]
+include = ["core*", "adapters*", "webui*", "commands*"]
 
 [tool.mypy]
 strict = true
@@ -52,7 +53,7 @@ line-length = 100
 profile = "black"
 
 [tool.pytest.ini_options]
-addopts = "--cov=core --cov-report=term-missing"
+addopts = "--cov=core --cov=commands --cov=adapters --cov-report=term-missing"
 testpaths = ["tests"]
 # tests/fakes.py 等を `from tests....` で参照するテストがあっても、
 # 素の `pytest` 起動（CIの起動方法）でリポジトリルートを sys.path に含める
@@ -60,6 +61,4 @@ testpaths = ["tests"]
 pythonpath = ["."]
 
 [tool.coverage.run]
-# adapters/ は hou/bpy が無い環境では実行できないため、カバレッジ計測から除外する
-# （scene_doctorと同一方針）。
-omit = ["adapters/*"]
+branch = true
