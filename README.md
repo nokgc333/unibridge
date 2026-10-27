@@ -1,5 +1,7 @@
 # UniBridge
 
+> **English summary.** UniBridge checks OpenUSD scenes exchanged between Houdini (Solaris) and Blender. It detects up-axis and scale (metersPerUnit) mismatches, naming-rule violations, unresolved references, and material, UV, variant and purpose problems, and writes CSV / JSON / HTML reports. It only reports; conversion happens only when you ask for it (`scale-check --apply`). The core depends on `usd-core` alone, so it runs without Houdini or Blender; the DCC adapters are verified on real Blender 3.5.1 to 5.0.0 and Houdini 22.0.429 ([records](docs/verification/README.md)). Install with `pip install .` and run `unibridge --help`.
+
 HoudiniとBlenderの間で受け渡すOpenUSD（USD）シーンの整合を検査するツール。座標系（upAxis）・スケール単位（metersPerUnit）・命名規則の不整合を検出し、CSV/JSON/HTML形式の差分レポートを生成する。変換は、明示的に指定したとき（`scale-check --apply`）だけ行う。
 
 ## 目的・背景
@@ -80,6 +82,36 @@ python cli.py batch --dir sample_scenes/ --format json --workers 4
 ```bash
 hython cli_houdini_entry.py export --lop /stage/out --output out.usda
 blender --background --python cli_blender_entry.py -- --usd out.usda --reexport --out reexported.usda
+```
+
+## 画面とレポートの例
+
+Web UI(`webui/`)の画面。上から、開いた直後・単一ファイルの検証・差分の比較。
+
+![Web UI の開いた直後](docs/images/webui-start.png)
+
+![単一ファイルの検証結果](docs/images/webui-validate.png)
+
+![差分の比較結果](docs/images/webui-diff.png)
+
+`python cli.py diff --before sample_scenes/consistent_scene.usda --after sample_scenes/changed_structure.usda --format all --out docs/samples` で作ったレポート(CSV)。JSON と HTML も同じ場所にある([docs/samples/](docs/samples/))。
+
+```csv
+category,severity,target_path,message,before_value,after_value
+prim_removed,error,/root/mat_hero,prim /root/mat_hero exists in before but missing in after,,
+prim_added,info,/root/GeoExtra,prim /root/GeoExtra newly appears in after (not present in before),,
+material_count_diff,warning,(stage),material count changed: 1 -> 0,1,0
+```
+
+`integrity-check --format json` の出力は、ツール間で共通の形式。全文は [docs/samples/integrity-check.json](docs/samples/integrity-check.json)。
+
+```json
+{
+  "schema_version": "1",
+  "tool": "unibridge",
+  "subject": "sample_scenes/changed_structure.usda",
+  "has_errors": false
+}
 ```
 
 ## 使用方法（簡易Web GUI）
@@ -201,6 +233,22 @@ Houdini MCP（`houdini`）は本セッションでも引き続き`ConnectionRefu
 3. `Release` ワークフローが、版の一致を確かめ、ビルドして TestPyPI に公開し、GitHub Releases を作る
 
 TestPyPI への公開には、PyPI 側の Trusted Publishing の設定(リポジトリ `nokgc333/unibridge`、ワークフロー `release.yml`、環境 `testpypi`)が要る。アカウントの設定なので、利用者本人が行う。
+
+## 設計判断(ADR)
+
+| 番号 | 内容 |
+| --- | --- |
+| [0001](docs/adr/0001-adopt-usd-over-fbx.md) | FBX ではなく USD を採用する |
+| [0002](docs/adr/0002-dual-adapter-architecture.md) | `core` と 2 つの DCC アダプタに分ける |
+| [0003](docs/adr/0003-bpy-for-scene-hierarchy-validation.md) | Blender の USD 入出力の実挙動も検証の対象にする |
+| [0004](docs/adr/0004-cli-and-web-gui.md) | CLI と簡易 Web UI の 2 つの入口 |
+| [0005](docs/adr/0005-report-only-no-autofix.md) | 検出とレポートに限り、自動修正しない |
+| [0006](docs/adr/0006-integrity-checks-without-usdchecker.md) | 標準検査は usdchecker を使わず `usd-core` だけで実装する |
+| [0007](docs/adr/0007-web-ui-security-policy.md) | Web UI は信頼できない USD を受け付ける前提で守る |
+| [0008](docs/adr/0008-external-reference-policy.md) | 外部参照は入力の信頼度で扱いを分ける |
+| [0009](docs/adr/0009-exit-code-design.md) | 終了コードは「不整合」と「実行できなかった」を分ける |
+
+変更の履歴は [CHANGELOG.md](CHANGELOG.md)。
 
 ## セキュリティに関する注意
 
