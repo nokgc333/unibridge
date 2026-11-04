@@ -1,5 +1,7 @@
 # UniBridge
 
+[![CI](https://github.com/nokgc333/unibridge/actions/workflows/ci.yml/badge.svg)](https://github.com/nokgc333/unibridge/actions/workflows/ci.yml)
+
 > **English summary.** UniBridge checks OpenUSD scenes exchanged between Houdini (Solaris) and Blender. It detects up-axis and scale (metersPerUnit) mismatches, naming-rule violations, unresolved references, and material, UV, variant and purpose problems, and writes CSV / JSON / HTML reports. It only reports; conversion happens only when you ask for it (`scale-check --apply`). The core depends on `usd-core` alone, so it runs without Houdini or Blender; the DCC adapters are verified on real Blender 3.5.1 to 5.0.0 and Houdini 22.0.429 ([records](docs/verification/README.md)). Install with `pip install .` and run `unibridge --help`.
 
 HoudiniとBlenderの間で受け渡すOpenUSD（USD）シーンの整合を検査するツール。座標系（upAxis）・スケール単位（metersPerUnit）・命名規則の不整合を検出し、CSV/JSON/HTML形式の差分レポートを生成する。変換は、明示的に指定したとき（`scale-check --apply`）だけ行う。
@@ -132,11 +134,15 @@ uvicorn webui.main:app --host 127.0.0.1 --port 8000 --reload
 
 上限は環境変数で変更できる:
 
-| 環境変数 | 既定値 | 意味 |
-| --- | --- | --- |
-| `UNIBRIDGE_MAX_UPLOAD_BYTES` | `209715200`（200MB） | 1ファイルあたりの上限 |
-| `UNIBRIDGE_MAX_CONCURRENT_UPLOADS` | `4` | 同時に処理するアップロード数 |
-| `UNIBRIDGE_PARSE_TIMEOUT_SECONDS` | `30` | 1リクエストの解析の制限時間（秒） |
+- **`UNIBRIDGE_MAX_UPLOAD_BYTES`**
+  - 既定値: `209715200`（200MB）
+  - 意味: 1ファイルあたりの上限
+- **`UNIBRIDGE_MAX_CONCURRENT_UPLOADS`**
+  - 既定値: `4`
+  - 意味: 同時に処理するアップロード数
+- **`UNIBRIDGE_PARSE_TIMEOUT_SECONDS`**
+  - 既定値: `30`
+  - 意味: 1リクエストの解析の制限時間（秒）
 
 ## テスト
 
@@ -156,10 +162,14 @@ python tests/benchmark.py   # 性能測定(手動実行、CI組み込みなし�
 
 以前は仕様書§3.1で指定されたバージョン制約（`usd-core<25`, `pytest<9`）により、`pip-audit`で以下2件の既知脆弱性が検出されていた。
 
-| パッケージ | 旧バージョン | 脆弱性ID | 修正版 |
-|---|---|---|---|
-| usd-core | 24.11 | GHSA-grjp-54v3-c442 | 25.11 |
-| pytest | 8.4.2 | PYSEC-2026-1845 | 9.0.3 |
+- **usd-core**
+  - 旧バージョン: 24.11
+  - 脆弱性ID: GHSA-grjp-54v3-c442
+  - 修正版: 25.11
+- **pytest**
+  - 旧バージョン: 8.4.2
+  - 脆弱性ID: PYSEC-2026-1845
+  - 修正版: 9.0.3
 
 `pyproject.toml`のバージョン上限を撤廃し（`usd-core>=25.11`, `pytest>=9.0.3`）、実際に`usd-core 26.8`・`pytest 9.1.1`へ更新することで解消した（先行プロジェクトpipeinitでの対応実績に倣う）。更新後も`pytest --cov=core --cov-report=term-missing --cov-fail-under=80`（53件pass、カバレッジ94.66%）、`black --check . && isort --check . && flake8 . && mypy core/ cli.py webui/ --exclude adapters/`は全てパスし、`usd-core 26.8`での`metersPerUnit`未設定時の既定値も0.01のまま変化していないことを実測で再確認した。`pip-audit`実行結果は`No known vulnerabilities found`。
 
@@ -180,10 +190,14 @@ blender --background --python cli_blender_entry.py -- \
 
 実機検証で2件の問題を発見・修正した。
 
-| 発見箇所 | 症状 | 原因 | 対応 |
-|---|---|---|---|
-| `cli_blender_entry.py`の`adapters`インポート | `ModuleNotFoundError: No module named 'adapters'` | Blenderの`--python`実行では、スクリプト自身のディレクトリが自動的に`sys.path`へ追加されるとは限らない | `Path(__file__).resolve().parent`を明示的に`sys.path`へ追加 |
-| `import_usd()` | インポート後のオブジェクト数が期待値(4 Prim)ではなく6件になる | Blenderの`--background`起動時点で既定のstartup.blend（Cube/Camera/Light）がロード済みの状態からusd_importするため、既定オブジェクトが混入する | `import_usd()`内で`bpy.data.objects`を全削除してからインポートするよう修正（`_clear_default_scene()`追加） |
+- **`cli_blender_entry.py`の`adapters`インポート**
+  - 症状: `ModuleNotFoundError: No module named 'adapters'`
+  - 原因: Blenderの`--python`実行では、スクリプト自身のディレクトリが自動的に`sys.path`へ追加されるとは限らない
+  - 対応: `Path(__file__).resolve().parent`を明示的に`sys.path`へ追加
+- **`import_usd()`**
+  - 症状: インポート後のオブジェクト数が期待値(4 Prim)ではなく6件になる
+  - 原因: Blenderの`--background`起動時点で既定のstartup.blend（Cube/Camera/Light）がロード済みの状態からusd_importするため、既定オブジェクトが混入する
+  - 対応: `import_usd()`内で`bpy.data.objects`を全削除してからインポートするよう修正（`_clear_default_scene()`追加）
 
 修正後、`sample_scenes/consistent_scene.usda`（4 Prim: root/xform_hero/geo_body/mat_hero）に対し**正しく3オブジェクト**（Blenderはグルーピング用のScope相当を1オブジェクトとして扱わないため4ではなく3）をインポートすることを確認した。
 
@@ -220,9 +234,10 @@ Houdini MCP（`houdini`）は本セッションでも引き続き`ConnectionRefu
 
 実機検証で1件の重大なバグを発見・修正した。
 
-| 発見箇所 | 症状 | 原因 | 対応 |
-|---|---|---|---|
-| `export_stage_from_lop()`の`stage.GetRootLayer().Export()` | エクスポートしたUSDファイルにジオメトリ等のプリムが一切含まれず、`subLayers`に匿名レイヤーへの参照のみが書き出される（Houdiniセッション終了後は解決不能なファイルになる） | Houdini LOPノードの`stage()`が返す合成済みStageは、各ノードの出力を保持する複数の匿名sublayer（`anon:0x...:LOP`）から構成されている。`stage.GetRootLayer()`はそのうちルートレイヤー（sublayer参照のみを持つ空に近いレイヤー）しか指さないため、それだけを`Export()`すると実際のプリム定義（他のsublayerにある）が失われる | `stage.GetRootLayer().Export()`を`stage.Export()`（`Usd.Stage.Export`、合成結果をフラット化してから書き出す）に修正。修正後、実際にsphere/cubeプリムを含む正しいUSDファイルが出力されることを確認した |
+- **`export_stage_from_lop()`の`stage.GetRootLayer().Export()`**
+  - 症状: エクスポートしたUSDファイルにジオメトリ等のプリムが一切含まれず、`subLayers`に匿名レイヤーへの参照のみが書き出される（Houdiniセッション終了後は解決不能なファイルになる）
+  - 原因: Houdini LOPノードの`stage()`が返す合成済みStageは、各ノードの出力を保持する複数の匿名sublayer（`anon:0x...:LOP`）から構成されている。`stage.GetRootLayer()`はそのうちルートレイヤー（sublayer参照のみを持つ空に近いレイヤー）しか指さないため、それだけを`Export()`すると実際のプリム定義（他のsublayerにある）が失われる
+  - 対応: `stage.GetRootLayer().Export()`を`stage.Export()`（`Usd.Stage.Export`、合成結果をフラット化してから書き出す）に修正。修正後、実際にsphere/cubeプリムを含む正しいUSDファイルが出力されることを確認した
 
 修正後、`export_stage_from_lop`/`list_lop_children`のエラーケース・正常系ともに全て期待通りに動作することを確認した。コードはScene DoctorのPorts & Adaptersパターン（`hou_adapter.py`）に倣って実装済みであり、`adapters/houdini_adapter.py`・`cli_houdini_entry.py`のdocstringは実機検証済みである旨に更新した。
 
@@ -236,17 +251,15 @@ TestPyPI への公開には、PyPI 側の Trusted Publishing の設定(リポジ
 
 ## 設計判断(ADR)
 
-| 番号 | 内容 |
-| --- | --- |
-| [0001](docs/adr/0001-adopt-usd-over-fbx.md) | FBX ではなく USD を採用する |
-| [0002](docs/adr/0002-dual-adapter-architecture.md) | `core` と 2 つの DCC アダプタに分ける |
-| [0003](docs/adr/0003-bpy-for-scene-hierarchy-validation.md) | Blender の USD 入出力の実挙動も検証の対象にする |
-| [0004](docs/adr/0004-cli-and-web-gui.md) | CLI と簡易 Web UI の 2 つの入口 |
-| [0005](docs/adr/0005-report-only-no-autofix.md) | 検出とレポートに限り、自動修正しない |
-| [0006](docs/adr/0006-integrity-checks-without-usdchecker.md) | 標準検査は usdchecker を使わず `usd-core` だけで実装する |
-| [0007](docs/adr/0007-web-ui-security-policy.md) | Web UI は信頼できない USD を受け付ける前提で守る |
-| [0008](docs/adr/0008-external-reference-policy.md) | 外部参照は入力の信頼度で扱いを分ける |
-| [0009](docs/adr/0009-exit-code-design.md) | 終了コードは「不整合」と「実行できなかった」を分ける |
+- **[0001](docs/adr/0001-adopt-usd-over-fbx.md):** FBX ではなく USD を採用する
+- **[0002](docs/adr/0002-dual-adapter-architecture.md):** `core` と 2 つの DCC アダプタに分ける
+- **[0003](docs/adr/0003-bpy-for-scene-hierarchy-validation.md):** Blender の USD 入出力の実挙動も検証の対象にする
+- **[0004](docs/adr/0004-cli-and-web-gui.md):** CLI と簡易 Web UI の 2 つの入口
+- **[0005](docs/adr/0005-report-only-no-autofix.md):** 検出とレポートに限り、自動修正しない
+- **[0006](docs/adr/0006-integrity-checks-without-usdchecker.md):** 標準検査は usdchecker を使わず `usd-core` だけで実装する
+- **[0007](docs/adr/0007-web-ui-security-policy.md):** Web UI は信頼できない USD を受け付ける前提で守る
+- **[0008](docs/adr/0008-external-reference-policy.md):** 外部参照は入力の信頼度で扱いを分ける
+- **[0009](docs/adr/0009-exit-code-design.md):** 終了コードは「不整合」と「実行できなかった」を分ける
 
 変更の履歴は [CHANGELOG.md](CHANGELOG.md)。
 
